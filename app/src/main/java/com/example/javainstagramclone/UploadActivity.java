@@ -3,12 +3,14 @@ package com.example.javainstagramclone;
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContract;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -23,97 +25,79 @@ import android.widget.Toast;
 
 import com.example.javainstagramclone.databinding.ActivityMainBinding;
 import com.example.javainstagramclone.databinding.ActivityUploadBinding;
+
 import com.google.android.material.snackbar.Snackbar;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 
 public class UploadActivity extends AppCompatActivity {
+
+    Bitmap selectedImage;
+    Uri imageData;
     private ActivityUploadBinding binding;
     ActivityResultLauncher<Intent> activityResultLauncher;
     ActivityResultLauncher<String> permissionLauncher;
-  Uri  imageData;
-  Bitmap selectedImage;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityUploadBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
+        View view = binding.getRoot();
+        setContentView(view);
+
+        registerLaunchers();
+
     }
 
-    public void Upload(View view){}
 
+    public void select_image(View view) {
+        openGallery();
+    }
 
-    public void select_Image(View view) {
+    private void requestGalleryPermission() {
+        permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE);
+    }
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
+    private void openGallery() {
+        Intent intentToGallery = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        activityResultLauncher.launch(intentToGallery);
+    }
 
-                Snackbar.make(view, "Permission needed for gallery", Snackbar.LENGTH_INDEFINITE).setAction("Give Permission", new View.OnClickListener() {
+    private void registerLaunchers() {
+        // İzin launcher'ını kaydet
+        permissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                new ActivityResultCallback<Boolean>() {
                     @Override
-                    public void onClick(View v) {
-                        //ask permission
-
+                    public void onActivityResult(Boolean isGranted) {
+                        if (isGranted) {
+                            // İzin verildiyse galeriye eriş
+                            openGallery();
+                        } else {
+                            Toast.makeText(UploadActivity.this, "Permission needed!", Toast.LENGTH_LONG).show();
+                            requestGalleryPermission();
+                        }
                     }
-                }).show();
+                }
+        );
 
-            } else {
-                //ask permission
+        // Activity result launcher'ını kaydet
+        activityResultLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                new ActivityResultCallback<ActivityResult>() {
+                    @Override
+                    public void onActivityResult(ActivityResult result) {
+                        if (result.getResultCode() == Activity.RESULT_OK) {
+                            Intent intentFromResult = result.getData();
+                             Uri selectedImageUri = intentFromResult.getData();
+                             binding.imageView.setImageURI(selectedImageUri);
 
-            }
-
-        }else {
-            Intent intentToGallery=new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        }
+                        }
+                    }
+                }
+        );
     }
-
-
-   public void registerLauncher(){
-
-        activityResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), new ActivityResultCallback<ActivityResult>() {
-            @Override
-            public void onActivityResult(ActivityResult o) {
-               if(o.getResultCode()==RESULT_OK){
-                   Intent intentFromResult =o.getData();
-                   if(intentFromResult!=null){
-                       imageData=intentFromResult.getData();
-                       binding.imageView2.setImageURI(imageData);
-                       /*
-                              try {
-                                if(Build.VERSION.SDK_INT>=28) {
-                                    ImageDecoder.Source source = ImageDecoder.createSource(UploadActivity.this.getContentResolver(), imageData);
-                                    selectedImage = ImageDecoder.decodeBitmap(source);
-                                    binding.imageView2.setImageBitmap(selectedImage);
-                                }else{
-                                    selectedImage=MediaStore.Images.Media.getBitmap(UploadActivity.this.getContentResolver(),imageData);
-                                    binding.imageView2.setImageBitmap(selectedImage);
-                                }
-                              }catch (FileNotFoundException e){
-                                  e.printStackTrace();
-
-                              }*/
-
-                   }
-
-
-               }
-            }
-        });
-
-
-   }
-
-   public void permissionLauncher(){
-
-   }
-
-
-    public void back_function(View view){
-        Intent intenttofeed = new Intent(UploadActivity.this,FeedActivity.class);
-        startActivity(intenttofeed);
-    }
-
 
 }
