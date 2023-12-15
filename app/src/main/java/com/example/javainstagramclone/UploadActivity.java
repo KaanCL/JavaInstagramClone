@@ -1,3 +1,4 @@
+
 package com.example.javainstagramclone;
 
 import androidx.activity.result.ActivityResult;
@@ -5,6 +6,7 @@ import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContract;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -26,13 +28,33 @@ import android.widget.Toast;
 import com.example.javainstagramclone.databinding.ActivityMainBinding;
 import com.example.javainstagramclone.databinding.ActivityUploadBinding;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Objects;
+import java.util.UUID;
 
 public class UploadActivity extends AppCompatActivity {
+
+
+    private FirebaseStorage firebaseStorage;
+    private FirebaseAuth auth;
+    private FirebaseFirestore firebaseFirestore;
+    private StorageReference storageReference;
+
 
     Bitmap selectedImage;
     Uri imageData;
@@ -49,12 +71,82 @@ public class UploadActivity extends AppCompatActivity {
 
         registerLaunchers();
 
+        firebaseStorage= FirebaseStorage.getInstance();
+        auth=FirebaseAuth.getInstance();
+        firebaseFirestore=FirebaseFirestore.getInstance();
+        storageReference=firebaseStorage.getReference();
+
+
+
+
     }
 
 
     public void select_image(View view) {
         openGallery();
     }
+
+    public void Upload(View view){
+
+     if(imageData!=null){
+
+         //Universal unique id
+         UUID uuid = UUID.randomUUID();
+         String imageName = "images/"+ uuid + ".jpg";
+
+       storageReference.child(imageName).putFile(imageData).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+           @Override
+           public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+
+               //Dowload url
+             StorageReference newReference = firebaseStorage.getReference(imageName);
+
+             newReference.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                 @Override
+                 public void onSuccess(Uri uri) {
+                  String dowloadUrl = uri.toString();
+                  String comment =binding.editTextComment.getText().toString();
+
+                     FirebaseUser user = auth.getCurrentUser();
+                     String email = user.getEmail();
+
+                     HashMap<String , Object> postData = new HashMap<>();
+                     postData.put("useremail",email);
+                     postData.put("dowloadurl",dowloadUrl);
+                     postData.put("comment",comment);
+                     postData.put("date", FieldValue.serverTimestamp());
+
+                     firebaseFirestore.collection("Posts").add(postData).addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                         @Override
+                         public void onSuccess(DocumentReference documentReference) {
+
+                             Intent intent = new Intent(UploadActivity.this,FeedActivity.class);
+                             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                             startActivity(intent);
+
+                         }
+                     }).addOnFailureListener(new OnFailureListener() {
+                         @Override
+                         public void onFailure(@NonNull Exception e) {
+                             Toast.makeText(UploadActivity.this,e.getLocalizedMessage(),Toast.LENGTH_LONG).show();
+                         }
+                     });
+
+                 }
+
+             });
+
+           }
+       }).addOnFailureListener(new OnFailureListener() {
+           @Override
+           public void onFailure(@NonNull Exception e) {
+                Toast.makeText(UploadActivity.this,e.getLocalizedMessage(),Toast.LENGTH_LONG).show();
+           }
+       });
+     }
+
+    }
+
 
     private void requestGalleryPermission() {
         permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE);
@@ -91,13 +183,43 @@ public class UploadActivity extends AppCompatActivity {
                     public void onActivityResult(ActivityResult result) {
                         if (result.getResultCode() == Activity.RESULT_OK) {
                             Intent intentFromResult = result.getData();
-                             Uri selectedImageUri = intentFromResult.getData();
-                             binding.imageView.setImageURI(selectedImageUri);
+                            imageData = intentFromResult.getData();
+                            binding.imageView.setImageURI(imageData);
+
+                         /*   try {
+                                // Uri'yi Bitmap'e dönüştürme
+                                selectedImage = MediaStore.Images.Media.getBitmap(getContentResolver(), selectedImageUri);
+
+                                makeSmallerImage(selectedImage,300);
+
+                                binding.imageView.setImageBitmap(selectedImage);
+
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }*/
 
                         }
                     }
                 }
         );
+    }
+
+    public Bitmap makeSmallerImage(Bitmap image , int maximumSize) {
+
+        int width = image.getWidth();
+        int height = image.getHeight();
+
+        float bitmapRatio = (float) width / (float) height;
+
+        if (bitmapRatio > 1) {
+            width = maximumSize;
+            height = (int) (width / bitmapRatio);
+        } else {
+            height = maximumSize;
+            width = (int) (height * bitmapRatio);
+        }
+
+        return Bitmap.createScaledBitmap(image, width, height, true);
     }
 
 }
