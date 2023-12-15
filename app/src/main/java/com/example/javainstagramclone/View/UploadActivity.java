@@ -1,36 +1,26 @@
 
-package com.example.javainstagramclone;
+package com.example.javainstagramclone.View;
 
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContract;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.ImageDecoder;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.View;
 import android.widget.Toast;
 
-import com.example.javainstagramclone.databinding.ActivityMainBinding;
 import com.example.javainstagramclone.databinding.ActivityUploadBinding;
-
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
@@ -40,11 +30,7 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.HashMap;
-import java.util.Objects;
 import java.util.UUID;
 
 public class UploadActivity extends AppCompatActivity {
@@ -120,7 +106,7 @@ public class UploadActivity extends AppCompatActivity {
                          @Override
                          public void onSuccess(DocumentReference documentReference) {
 
-                             Intent intent = new Intent(UploadActivity.this,FeedActivity.class);
+                             Intent intent = new Intent(UploadActivity.this, FeedActivity.class);
                              intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                              startActivity(intent);
 
