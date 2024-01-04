@@ -14,8 +14,4 @@ public class Posts {
         this.comment = comment;
         this.dowloadUrl = dowloadUrl;
     }
-
-
-
-
 }
